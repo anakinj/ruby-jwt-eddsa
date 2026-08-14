@@ -3,6 +3,12 @@
     push:
       tags:
       - v*.*.*
+    workflow_dispatch:
+      inputs:
+        tag:
+          description: Existing tag to (re-)publish, e.g. v1.0.0
+          required: true
+          type: string
 
   name: Build and push gem
   jobs:
@@ -17,6 +23,7 @@
           role-to-assume: rg_oidc_akr_d5dztzq4ywp3y7rd7vfp
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.tag || github.ref }}
           persist-credentials: false
       - name: Set remote URL
         run: |
@@ -32,7 +39,9 @@
       - name: Install dependencies
         run: bundle install
       - name: Extract version number
-        run: echo "GEM_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: echo "GEM_VERSION=${TAG#v}" >> $GITHUB_ENV
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
       - name: Release
         run: bundle exec rake release
       - name: Wait for release to propagate
